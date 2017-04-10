@@ -5,20 +5,23 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
+import os
+import yaml
 import random
 import string
 import unittest
 
-BASE_URI = "https://"
-login_page = "/auth/login/"
 
-admin_user = "admin"
-admin_user_pass = ""
 
-not_admin_user = "not admin"
-not_admin_user_pass = "admin"
-timeout = 20
-default_image_name = "cirros"
+def get_configuration():
+    """function returns configuration for environment"""
+    global_config_file = os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), "global_config.yaml")
+
+    with open(global_config_file, 'r') as file:
+        global_config = yaml.load(file)
+
+    return global_config
 
 
 def gen_rand_string(object_type, size=6):
@@ -27,15 +30,17 @@ def gen_rand_string(object_type, size=6):
 
 
 def login_for_user(driver, user, password):
-    driver.get("{}{}".format(BASE_URI, login_page))
+    conf = get_configuration()
+
+    driver.get("{}{}".format(conf.get('BASE_URI'), conf.get('login_page')))
     driver.find_element_by_id("id_username").send_keys(user)
     driver.find_element_by_id("id_password").send_keys(password)
     driver.find_element_by_id("loginBtn").submit()
 
-    assert login_page not in driver.current_url, "Unauthorized"
+    assert conf.get('login_page') not in driver.current_url, "Unauthorized"
 
 
-def check_exists_by_xpath(driver, xpath):
+def check_exists_by_xpath(driver, xpath, timeout):
     try:
         driver.implicitly_wait(5)
         driver.find_element_by_xpath(xpath)
@@ -51,11 +56,15 @@ class TestForAdmin(unittest.TestCase):
     """Need user, with admin permission"""
 
     def setUp(self):
+        self.conf = get_configuration()
+
         self.driver = webdriver.Firefox(
             capabilities={"marionette": False},
             executable_path='/usr/bin/firefox')
-        self.driver.implicitly_wait(timeout)
-        login_for_user(self.driver, admin_user, admin_user_pass)
+        self.driver.implicitly_wait(self.conf.get('timeout'))
+        login_for_user(self.driver,
+                       self.conf.get('admin_user'),
+                       self.conf.get('admin_user_pass'))
 
     def tearDown(self):
         self.driver.close()
@@ -63,7 +72,7 @@ class TestForAdmin(unittest.TestCase):
     def test_openstack_dashboard_split_pages(self):
         """"""
         # part for admin
-        self.driver.get("{}{}".format(BASE_URI, '/admin/'))
+        self.driver.get("{}{}".format(self.conf.get('BASE_URI'), '/admin/'))
         assert "Volumes" in self.driver.find_element_by_xpath(
             "//a[@href='/admin/volumes/']").text
         assert "Volume Snapshots" in self.driver.find_element_by_xpath(
@@ -74,7 +83,7 @@ class TestForAdmin(unittest.TestCase):
             "//a[@href='/admin/image_snapshots/']").text
 
         # part for project
-        self.driver.get("{}{}".format(BASE_URI, '/project/'))
+        self.driver.get("{}{}".format(self.conf.get('BASE_URI'), '/project/'))
         assert "Volumes" in self.driver.find_element_by_xpath(
             "//a[@href='/project/volumes/']").text
         assert "Volume Snapshots" in self.driver.find_element_by_xpath(
@@ -87,7 +96,8 @@ class TestForAdmin(unittest.TestCase):
     def test_images_filter(self):
         """Extra filters on Images page"""
 
-        self.driver.get("{}{}".format(BASE_URI, '/project/images'))
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), '/project/images'))
 
         filters = self.driver.find_elements_by_name("images__filter__q")
         filter_values = [f.text.split(" (")[0] for f in filters]
@@ -104,7 +114,8 @@ class TestForAdmin(unittest.TestCase):
         Volumes screen columns ordering
         Volume Snapshots screen columns ordering
         """
-        self.driver.get("{}{}".format(BASE_URI, '/project/instances'))
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), '/project/instances'))
         for number in range(2, 11):
 
             # Skip column 'size'
@@ -118,7 +129,8 @@ class TestForAdmin(unittest.TestCase):
             assert "sortable" in attribute, \
                 "Page 'instances' has unsortable item"
 
-        self.driver.get("{}{}".format(BASE_URI, '/project/images'))
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), '/project/images'))
         for number in range(2, 9):
             attribute = self.driver.find_element_by_xpath(
                 "//*[@id='images']/thead/tr[2]/th[{}]".format(number))\
@@ -126,7 +138,8 @@ class TestForAdmin(unittest.TestCase):
             assert "sortable" in attribute, \
                 "Page 'images' has unsortable item"
 
-        self.driver.get("{}{}".format(BASE_URI, '/project/image_snapshots'))
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), '/project/image_snapshots'))
         for number in range(2, 8):
             attribute = self.driver.find_element_by_xpath(
                 "//*[@id='image_snapshots']/thead/tr[2]/th[{}]"
@@ -134,7 +147,8 @@ class TestForAdmin(unittest.TestCase):
             assert "sortable" in attribute, \
                 "Page 'image_snapshots' has unsortable item"
 
-        self.driver.get("{}{}".format(BASE_URI, '/project/volumes'))
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), '/project/volumes'))
         for number in range(2, 9):
             attribute = self.driver.find_element_by_xpath(
                 "//*[@id='volumes']/thead/tr[2]/th[{}]".format(number))\
@@ -142,7 +156,8 @@ class TestForAdmin(unittest.TestCase):
             assert "sortable" in attribute, \
                 "Page 'volumes' has unsortable item"
 
-        self.driver.get("{}{}".format(BASE_URI, '/project/volume_snapshots'))
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), '/project/volume_snapshots'))
         for number in range(2, 6):
             attribute = self.driver.find_element_by_xpath(
                 "//*[@id='volume_snapshots']/thead/tr[2]/th[{}]"
@@ -155,22 +170,26 @@ class TestForAdmin(unittest.TestCase):
 
         Volume Snapshots page title"""
 
-        self.driver.get("{}{}".format(BASE_URI, '/project/image_snapshots'))
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), '/project/image_snapshots'))
         assert "Image Snapshots" in self.driver.find_element_by_xpath(
             "//*[@id='content_body']//h1").text, \
             "The page '/project/image_snapshots' has wrong title"
 
-        self.driver.get("{}{}".format(BASE_URI, '/admin/image_snapshots'))
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), '/admin/image_snapshots'))
         assert "Image Snapshots" in self.driver.find_element_by_xpath(
             "//*[@id='content_body']//h1").text, \
             "The page '/admin/image_snapshots' has wrong title"
 
-        self.driver.get("{}{}".format(BASE_URI, '/project/volume_snapshots'))
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), '/project/volume_snapshots'))
         assert "Volume Snapshots" in self.driver.find_element_by_xpath(
             "//*[@id='content_body']//h1").text, \
             "The page '/project/volume_snapshots' has wrong title"
 
-        self.driver.get("{}{}".format(BASE_URI, '/admin/volume_snapshots'))
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), '/admin/volume_snapshots'))
         assert "Volume Snapshots" in self.driver.find_element_by_xpath(
             "//*[@id='content_body']//h1").text, \
             "The page '/admin/volume_snapshots' has wrong title"
@@ -178,7 +197,8 @@ class TestForAdmin(unittest.TestCase):
     def test_checking_to_hide_external_network(self):
         """Hide external networks from instance creation screen"""
 
-        self.driver.get("{}{}".format(BASE_URI, '/project/instances'))
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), '/project/instances'))
         self.driver.find_element_by_id('instances__action_launch-ng').click()
         self.driver.find_element_by_xpath("//button[3]").click()
 
@@ -209,19 +229,22 @@ class TestForNotAdmin(unittest.TestCase):
         super(TestForNotAdmin, self).__init__(*args, **kwargs)
 
     def setUp(self):
+        self.conf = get_configuration()
         self.volume_uuid = None
         self.driver = webdriver.Firefox(
             capabilities={"marionette": False},
             executable_path='/usr/bin/firefox')
-        self.driver.implicitly_wait(timeout)
-        self.wait = WebDriverWait(self.driver, timeout)
-        login_for_user(self.driver, not_admin_user, not_admin_user_pass)
+        self.driver.implicitly_wait(self.conf.get('timeout'))
+        self.wait = WebDriverWait(self.driver, self.conf.get('timeout'))
+        login_for_user(self.driver,
+                       self.conf.get('not_admin_user'),
+                       self.conf.get('not_admin_user_pass'))
 
     def tearDown(self):
         if self.volume_uuid:
-            self.driver.get("{}{}".format(BASE_URI,
-                                          '/project/volumes/{}/'.format(
-                                              self.volume_uuid)))
+            self.driver.get("{}{}".format(
+                self.conf.get('BASE_URI'),
+                '/project/volumes/{}/'.format(self.volume_uuid)))
             self.driver.find_element_by_css_selector(
                 'a.btn.btn-default.btn-sm.dropdown-toggle').click()
             self.driver.find_element_by_id(
@@ -231,6 +254,7 @@ class TestForNotAdmin(unittest.TestCase):
                 'a.btn.btn-primary')
             self.assertEqual(confirm_delete.text, "Delete Volume")
             confirm_delete.click()
+
         self.driver.close()
 
     @data("/admin/info/",
@@ -242,41 +266,45 @@ class TestForNotAdmin(unittest.TestCase):
           "/admin/metadata_defs/")
     def test_for_admins_pages(self, value):
 
-        self.driver.get("{}{}".format(BASE_URI, value))
+        self.driver.get("{}{}".format(self.conf.get('BASE_URI'), value))
         assert "Login - Private Cloud Dashboard" in self.driver.title, \
             "The page '{}' is available for non-admin".format(value)
 
     def test_button_image_create(self):
         """"Create Image" button available only for admin"""
 
-        self.driver.get("{}{}".format(BASE_URI, "/project/images"))
+        self.driver.get("{}{}".format(self.conf.get('BASE_URI'), "/project/images"))
 
         # Check there is something
         assert check_exists_by_xpath(
             self.driver,
-            '//*[contains(@id, "images__row")]'), \
+            '//*[contains(@id, "images__row")]',
+            self.conf.timeout), \
             "The page isnt valid"
 
         assert not check_exists_by_xpath(
             self.driver,
-            "//*[@id='images__action_create']"), \
+            "//*[@id='images__action_create']",
+            self.conf.timeout), \
             "Create Image button is available for non-admin"
 
     def test_image_description_is_read_only(self):
         """Image description is read-only for non-admin
 
         Need to have an image"""
-        self.driver.get("{}{}".format(BASE_URI, "/project/images"))
+        self.driver.get("{}{}".format(self.conf.get('BASE_URI'), "/project/images"))
 
         # Check there is something
         assert check_exists_by_xpath(
             self.driver,
-            '//*[contains(@id, "images__row")]'),\
+            '//*[contains(@id, "images__row")]',
+            self.conf.get('timeout')),\
             "There isn't any images"
 
         assert not check_exists_by_xpath(
             self.driver,
-            '//*[contains(@id, "images__row")]//button'),\
+            '//*[contains(@id, "images__row")]//button',
+            self.conf.get('timeout')),\
             "Non-admin can change image description"
 
     def test_check_empty_name_for_volume(self):
@@ -284,7 +312,8 @@ class TestForNotAdmin(unittest.TestCase):
 
         Need to have an image
         """
-        self.driver.get("{}{}".format(BASE_URI, '/project/images'))
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), '/project/images'))
 
         # ToDo(den) do it better, choosing any image
         self.driver.find_element_by_xpath(
@@ -292,10 +321,11 @@ class TestForNotAdmin(unittest.TestCase):
 
         try:
             cirros_image = self.driver.find_element_by_link_text(
-                default_image_name)
+                self.conf.get('default_image_name'))
         except NoSuchElementException:
             raise Exception("Default image '{}' was not found on Horizon "
-                            "Images page".format(default_image_name))
+                            "Images page".format(
+                self.conf.get('default_image_name')))
 
         cirros_image.click()
 

@@ -1,0 +1,10 @@
+global_config
+global_config.yaml
+
+*.py[cod]
+
+.idea
+.venv
+
+.tox
+.cache

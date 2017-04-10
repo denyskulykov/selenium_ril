@@ -1,0 +1,11 @@
+---
+BASE_URI: "https://"
+login_page: "/auth/login/"
+
+admin_user: "admin"
+admin_user_pass: ""
+not_admin_user: "non_admin"
+not_admin_user_pass: ""
+
+timeout: 20
+default_image_name: "cirros"
