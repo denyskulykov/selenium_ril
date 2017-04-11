@@ -8,4 +8,6 @@ not_admin_user: "non_admin"
 not_admin_user_pass: ""
 
 timeout: 20
+timeout_creation: 180
 default_image_name: "cirros"
+default_vm_name: "test_vm"

@@ -40,14 +40,26 @@ def login_for_user(driver, user, password):
     assert conf.get('login_page') not in driver.current_url, "Unauthorized"
 
 
-def check_exists_by_xpath(driver, xpath, timeout):
+def check_element_exists(driver, by, value):
+    """We can use Class By or simple sting
+
+    By.ID = "id"
+    By.XPATH = "xpath"
+    By.LINK_TEXT = "link text"
+    By.PARTIAL_LINK_TEXT = "partial link text"
+    By.NAME = "name"
+    By.TAG_NAME = "tag name"
+    By.CLASS_NAME = "class name"
+    By.CSS_SELECTOR = "css selector"
+    """
+    conf = get_configuration()
     try:
-        driver.implicitly_wait(5)
-        driver.find_element_by_xpath(xpath)
+        driver.implicitly_wait(3)
+        driver.find_element(by, value)
     except NoSuchElementException:
         return False
     finally:
-        driver.implicitly_wait(timeout)
+        driver.implicitly_wait(conf.get("timeout"))
     return True
 
 
@@ -231,11 +243,15 @@ class TestForNotAdmin(unittest.TestCase):
     def setUp(self):
         self.conf = get_configuration()
         self.volume_uuid = None
+        self.image_snapshot_uuid = None
+
         self.driver = webdriver.Firefox(
             capabilities={"marionette": False},
             executable_path='/usr/bin/firefox')
         self.driver.implicitly_wait(self.conf.get('timeout'))
-        self.wait = WebDriverWait(self.driver, self.conf.get('timeout'))
+        self.wait = WebDriverWait(
+            self.driver,
+            self.conf.get('timeout_creation'))
         login_for_user(self.driver,
                        self.conf.get('not_admin_user'),
                        self.conf.get('not_admin_user_pass'))
@@ -254,6 +270,23 @@ class TestForNotAdmin(unittest.TestCase):
                 'a.btn.btn-primary')
             self.assertEqual(confirm_delete.text, "Delete Volume")
             confirm_delete.click()
+
+        if self.image_snapshot_uuid:
+            self.driver.get("{}{}".format(
+                self.conf.get('BASE_URI'),
+                '/project/image_snapshots/{}/'.format(self.image_snapshot_uuid)))
+
+            # There is probably list action
+            if check_element_exists(self.driver, By.CSS_SELECTOR,
+                                    'a.btn.btn-default.btn-sm.dropdown-toggle'):
+                self.driver.find_element_by_css_selector(
+                    'a.btn.btn-default.btn-sm.dropdown-toggle').click()
+
+            self.driver.find_element_by_id(
+               "image_snapshots__row_{}__action_delete".format(
+                    self.image_snapshot_uuid)).click()
+            self.driver.find_element_by_link_text(
+                "Delete Image Snapshot").click()
 
         self.driver.close()
 
@@ -276,35 +309,36 @@ class TestForNotAdmin(unittest.TestCase):
         self.driver.get("{}{}".format(self.conf.get('BASE_URI'), "/project/images"))
 
         # Check there is something
-        assert check_exists_by_xpath(
+        assert check_element_exists(
             self.driver,
-            '//*[contains(@id, "images__row")]',
-            self.conf.timeout), \
+            "xpath",
+            '//*[contains(@id, "images__row")]'), \
             "The page isnt valid"
 
-        assert not check_exists_by_xpath(
+        assert not check_element_exists(
             self.driver,
-            "//*[@id='images__action_create']",
-            self.conf.timeout), \
+            By.ID,
+            "images__action_create"), \
             "Create Image button is available for non-admin"
 
     def test_image_description_is_read_only(self):
         """Image description is read-only for non-admin
 
         Need to have an image"""
-        self.driver.get("{}{}".format(self.conf.get('BASE_URI'), "/project/images"))
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), "/project/images"))
 
         # Check there is something
-        assert check_exists_by_xpath(
+        assert check_element_exists(
             self.driver,
-            '//*[contains(@id, "images__row")]',
-            self.conf.get('timeout')),\
+            "xpath",
+            '//*[contains(@id, "images__row")]'),\
             "There isn't any images"
 
-        assert not check_exists_by_xpath(
+        assert not check_element_exists(
             self.driver,
-            '//*[contains(@id, "images__row")]//button',
-            self.conf.get('timeout')),\
+            "xpath",
+            '//*[contains(@id, "images__row")]//button'), \
             "Non-admin can change image description"
 
     def test_check_empty_name_for_volume(self):
@@ -365,6 +399,58 @@ class TestForNotAdmin(unittest.TestCase):
         overview = self.driver.find_element_by_css_selector(
             "div.info.row.detail")
         self.assertTrue(volume_description in overview.text)
+
+    def test_check_allow_delete_image_snapshots_for_non_admin(self):
+        """Allow to delete image snapshots for non-admin user"""
+
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), "/project/instances"))
+
+        try:
+            vm = self.driver.find_element_by_link_text(
+                self.conf.get('default_vm_name'))
+        except NoSuchElementException:
+            raise Exception("Default vm '{}' was not found on Horizon "
+                            "Instance page".format(
+                self.conf.get('default_vn_name')))
+
+        vm.click()
+
+        # looking for button
+        self.driver.find_element_by_xpath(
+            '//*[@id="content_body"]//a[@class='
+            '"btn btn-default btn-sm dropdown-toggle"]').click()
+
+        self.vm_uuid = self.driver.current_url.split('/')[-2]
+
+        self.driver.find_element_by_id(
+            "instances__row_{}__action_snapshot".format(self.vm_uuid)).click()
+
+        name_snapshot = gen_rand_string('snapshot')
+        self.driver.find_element_by_id("id_name").send_keys(name_snapshot)
+
+        self.driver.find_element_by_xpath(
+            "//*[@value='Create Snapshot']").submit()
+
+        # # check redirection
+        # self.assertIn("/project/image_snapshots/", self.driver.current_url)
+
+        self.driver.find_element_by_link_text(name_snapshot).click()
+
+        self.image_snapshot_uuid = self.driver.current_url.split('/')[-2]
+
+        # There is probably list action
+        if check_element_exists(
+                self.driver, By.CSS_SELECTOR,
+                'a.btn.btn-default.btn-sm.dropdown-toggle'):
+            self.driver.find_element_by_css_selector(
+            'a.btn.btn-default.btn-sm.dropdown-toggle').click()
+
+        self.assertTrue(
+            check_element_exists(
+                self.driver, By.ID,
+                "image_snapshots__row_{}__action_delete".format(
+                    self.image_snapshot_uuid)))
 
 
 if __name__ == '__main__':
