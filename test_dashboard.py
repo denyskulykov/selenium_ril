@@ -1,3 +1,5 @@
+
+
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from ddt import ddt, data
@@ -6,13 +8,13 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
 import os
+import json
 import yaml
 import random
 import string
 import unittest
 
 # ToDo(den) Fix test Hide network
-# ToDo(den) add log or good report
 # ToDo(den) change simple assert to self.assert
 
 
@@ -37,6 +39,24 @@ def get_client_driver():
     if conf.get("minimize_window"):
         driver.set_window_position(2000, 0)
     return driver
+
+
+list_test = {}
+
+
+def report(test=None, action="add"):
+    """action = "report", test = None
+
+    action = "add", {"name test": "status"}
+    """
+    if action == "add":
+        list_test.update(test)
+    elif action == "report":
+        print json.dumps(list_test, indent=4)
+
+
+def tearDownModule():
+    report(action="report")
 
 
 def login_for_user(driver, user, password):
@@ -94,7 +114,10 @@ class TestForAdmin(unittest.TestCase):
         self.driver.close()
 
     def test_openstack_dashboard_split_pages(self):
-        """"""
+        """Split Images Snapshots off Images page
+
+        Split Volume Snapshots off Volumes page
+        """
         # part for admin
         self.driver.get("{}{}".format(self.conf.get('BASE_URI'), '/admin/'))
         assert "Volumes" in self.driver.find_element_by_xpath(
@@ -117,6 +140,9 @@ class TestForAdmin(unittest.TestCase):
         assert "Image Snapshots" in self.driver.find_element_by_xpath(
             "//a[@href='/project/image_snapshots/']").text
 
+        report({"Split Images Snapshots off Images page": "Ok",
+                "Split Volume Snapshots off Volumes page": "Ok"})
+
     def test_images_filter(self):
         """Extra filters on Images page"""
 
@@ -129,6 +155,8 @@ class TestForAdmin(unittest.TestCase):
                             "Public", "Protected"]
         self.assertEqual(len(expected_filters), len(filter_values))
         self.assertSequenceEqual(filter_values, expected_filters)
+
+        report({"Extra filters on Images page": "Ok"})
 
     def test_sortable_for_columns(self):
         """Instances screen columns ordering
@@ -189,6 +217,12 @@ class TestForAdmin(unittest.TestCase):
             assert "sortable" in attribute, \
                 "Page 'volume_snapshots' has unsortable item"
 
+        report({"Instances screen columns ordering": "Ok",
+                "Volumes screen columns ordering": "Ok",
+                "Volume Snapshots screen columns ordering": "Ok",
+                "Images screen columns ordering": "Ok",
+                "Image Snapshots screen columns ordering": "Ok"})
+
     def test_title_for_snapshot_page(self):
         """Image Snapshots page title
 
@@ -218,6 +252,9 @@ class TestForAdmin(unittest.TestCase):
             "//*[@id='content_body']//h1").text, \
             "The page '/admin/volume_snapshots' has wrong title"
 
+        report({"Image Snapshots page title": "Ok",
+                "Volume Snapshots page title": "Ok"})
+
     def test_checking_to_hide_external_network(self):
         """Hide external networks from instance creation screen"""
 
@@ -243,6 +280,8 @@ class TestForAdmin(unittest.TestCase):
                 '/div/div[2]/div[2]/available/table/tbody/tr[{}]'
                 ''.format(number)).text, \
                 "ext-net network is  available for creating vm"
+
+        report({"Hide external networks from instance creation screen": "Ok"})
 
 
 @ddt
@@ -316,6 +355,9 @@ class TestForNotAdmin(unittest.TestCase):
         assert "Login - Private Cloud Dashboard" in self.driver.title, \
             "The page '{}' is available for non-admin".format(value)
 
+        report({"Check Admin pages are not available for non-admin {}"
+                "".format(value): "Ok"})
+
     def test_button_image_create(self):
         """"Create Image" button available only for admin"""
 
@@ -334,6 +376,8 @@ class TestForNotAdmin(unittest.TestCase):
             By.ID,
             "images__action_create"), \
             "Create Image button is available for non-admin"
+
+        report({"Create Image button available only for admin": "Ok"})
 
     def test_image_description_is_read_only(self):
         """Image description is read-only for non-admin
@@ -354,6 +398,8 @@ class TestForNotAdmin(unittest.TestCase):
             "xpath",
             '//*[contains(@id, "images__row")]//button'), \
             "Non-admin can change image description"
+
+        report({"Image description is read-only for non-admin": "Ok"})
 
     def test_check_empty_name_for_volume(self):
         """Check "empty" volume 'name' field
@@ -416,6 +462,8 @@ class TestForNotAdmin(unittest.TestCase):
             "div.info.row.detail")
         self.assertTrue(volume_description in overview.text)
 
+        report({"Check 'empty' volume 'name' field": "Ok"})
+
     def test_check_allow_delete_image_snapshots_for_non_admin(self):
         """Allow to delete image snapshots for non-admin user"""
 
@@ -467,6 +515,8 @@ class TestForNotAdmin(unittest.TestCase):
                 "image_snapshots__row_{}__action_delete".format(
                     self.image_snapshot_uuid)))
 
+        report({"Allow to delete image snapshots for non-admin user": "Ok"})
+
     def check_dns_dashboard_is_available(self):
         self.driver.get("{}{}".format(
             self.conf.get('BASE_URI'), "/project/dns_domains/"))
@@ -476,8 +526,10 @@ class TestForNotAdmin(unittest.TestCase):
                 self.driver,
                 By.LINK_TEXT,
                 "DNS"),
-            "Dns dashboard isn't available "
+            "Dns dashboard isn't available"
         )
+
+        report({"Dns dashboard is available": "Ok"})
 
     def check_murano_dashboard_is_available(self):
         self.driver.get("{}{}".format(
@@ -488,8 +540,10 @@ class TestForNotAdmin(unittest.TestCase):
                 self.driver,
                 By.LINK_TEXT,
                 "Murano"),
-            "Murano dashboard isn't available "
+            "Murano dashboard isn't available"
         )
+
+        report({"Murano dashboard is available": "Ok"})
 
 
 if __name__ == '__main__':
