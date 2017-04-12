@@ -12,7 +12,6 @@ import string
 import unittest
 
 # ToDo(den) Fix test Hide network
-# ToDo(den) removed NoSuchElementException from test
 # ToDo(den) add log or good report
 # ToDo(den) change simple assert to self.assert
 
@@ -368,15 +367,17 @@ class TestForNotAdmin(unittest.TestCase):
         self.driver.find_element_by_xpath(
             "//*[@name='images__filter__q'][4]").click()
 
-        try:
-            cirros_image = self.driver.find_element_by_link_text(
-                self.conf.get('default_image_name'))
-        except NoSuchElementException:
-            raise Exception("Default image '{}' was not found on Horizon "
-                            "Images page".format(
-                self.conf.get('default_image_name')))
+        if not check_element_exists(
+            self.driver,
+            By.LINK_TEXT,
+            self.conf.get('default_image_name')
+        ):
+            raise Exception(
+                "Default image '{}' was not found on Horizon "
+                "Images page".format(self.conf.get('default_image_name')))
 
-        cirros_image.click()
+        self.driver.find_element_by_link_text(
+                self.conf.get('default_image_name')).click()
 
         self.driver.find_element_by_css_selector(
             "a.btn.btn-default.btn-sm.dropdown-toggle").click()
@@ -421,15 +422,17 @@ class TestForNotAdmin(unittest.TestCase):
         self.driver.get("{}{}".format(
             self.conf.get('BASE_URI'), "/project/instances"))
 
-        try:
-            vm = self.driver.find_element_by_link_text(
-                self.conf.get('default_vm_name'))
-        except NoSuchElementException:
-            raise Exception("Default vm '{}' was not found on Horizon "
-                            "Instance page".format(
-                self.conf.get('default_vm_name')))
+        if not check_element_exists(
+            self.driver,
+            By.LINK_TEXT,
+            self.conf.get('default_vm_name')
+        ):
+            raise Exception(
+                "Default vm '{}' was not found on Horizon "
+                "Instance page".format(self.conf.get('default_vm_name')))
 
-        vm.click()
+        self.driver.find_element_by_link_text(
+            self.conf.get('default_vm_name')).click()
 
         # looking for button
         self.driver.find_element_by_xpath(
