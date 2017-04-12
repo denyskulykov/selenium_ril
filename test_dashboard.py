@@ -11,7 +11,10 @@ import random
 import string
 import unittest
 
-
+#ToDo(den) add hide options
+#Fix test Hide network
+# removed NoSuchElementException from test
+#add login or good report
 
 def get_configuration():
     """function returns configuration for environment"""
@@ -41,7 +44,7 @@ def login_for_user(driver, user, password):
 
 
 def check_element_exists(driver, by, value):
-    """We can use Class By or simple sting
+    """We can use Class By or the simple sting
 
     By.ID = "id"
     By.XPATH = "xpath"
@@ -274,11 +277,13 @@ class TestForNotAdmin(unittest.TestCase):
         if self.image_snapshot_uuid:
             self.driver.get("{}{}".format(
                 self.conf.get('BASE_URI'),
-                '/project/image_snapshots/{}/'.format(self.image_snapshot_uuid)))
+                '/project/image_snapshots/{}/'.format(
+                    self.image_snapshot_uuid)))
 
             # There is probably list action
-            if check_element_exists(self.driver, By.CSS_SELECTOR,
-                                    'a.btn.btn-default.btn-sm.dropdown-toggle'):
+            if check_element_exists(
+                    self.driver, By.CSS_SELECTOR,
+                    'a.btn.btn-default.btn-sm.dropdown-toggle'):
                 self.driver.find_element_by_css_selector(
                     'a.btn.btn-default.btn-sm.dropdown-toggle').click()
 
@@ -306,7 +311,8 @@ class TestForNotAdmin(unittest.TestCase):
     def test_button_image_create(self):
         """"Create Image" button available only for admin"""
 
-        self.driver.get("{}{}".format(self.conf.get('BASE_URI'), "/project/images"))
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), "/project/images"))
 
         # Check there is something
         assert check_element_exists(
@@ -412,7 +418,7 @@ class TestForNotAdmin(unittest.TestCase):
         except NoSuchElementException:
             raise Exception("Default vm '{}' was not found on Horizon "
                             "Instance page".format(
-                self.conf.get('default_vn_name')))
+                self.conf.get('default_vm_name')))
 
         vm.click()
 
@@ -432,9 +438,6 @@ class TestForNotAdmin(unittest.TestCase):
         self.driver.find_element_by_xpath(
             "//*[@value='Create Snapshot']").submit()
 
-        # # check redirection
-        # self.assertIn("/project/image_snapshots/", self.driver.current_url)
-
         self.driver.find_element_by_link_text(name_snapshot).click()
 
         self.image_snapshot_uuid = self.driver.current_url.split('/')[-2]
@@ -451,6 +454,31 @@ class TestForNotAdmin(unittest.TestCase):
                 self.driver, By.ID,
                 "image_snapshots__row_{}__action_delete".format(
                     self.image_snapshot_uuid)))
+
+    def check_dns_dashboard_is_available(self):
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), "/project/dns_domains/"))
+
+        self.assertTrue(
+            check_element_exists(
+                self.driver,
+                By.LINK_TEXT,
+                "DNS"),
+            "Dns dashboard isn't available "
+        )
+
+
+    def check_murano_dashboard_is_available(self):
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), "/murano/environments/"))
+
+        self.assertTrue(
+            check_element_exists(
+                self.driver,
+                By.LINK_TEXT,
+                "Murano"),
+            "Murano dashboard isn't available "
+        )
 
 
 if __name__ == '__main__':
