@@ -1,4 +1,6 @@
 ---
+minimize_window: False
+
 BASE_URI: "https://"
 login_page: "/auth/login/"
 

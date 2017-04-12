@@ -11,10 +11,11 @@ import random
 import string
 import unittest
 
-#ToDo(den) add hide options
-#Fix test Hide network
-# removed NoSuchElementException from test
-#add login or good report
+# ToDo(den) Fix test Hide network
+# ToDo(den) removed NoSuchElementException from test
+# ToDo(den) add log or good report
+# ToDo(den) change simple assert to self.assert
+
 
 def get_configuration():
     """function returns configuration for environment"""
@@ -27,9 +28,16 @@ def get_configuration():
     return global_config
 
 
-def gen_rand_string(object_type, size=6):
-    rand_string = ''.join(random.choice(string.digits) for _ in range(size))
-    return 'selenium-{}-{}'.format(object_type, rand_string)
+def get_client_driver():
+    conf = get_configuration()
+
+    driver = webdriver.Firefox(
+        capabilities={"marionette": False},
+        executable_path='/usr/bin/firefox')
+    driver.implicitly_wait(conf.get('timeout'))
+    if conf.get("minimize_window"):
+        driver.set_window_position(2000, 0)
+    return driver
 
 
 def login_for_user(driver, user, password):
@@ -66,17 +74,19 @@ def check_element_exists(driver, by, value):
     return True
 
 
+def gen_rand_string(object_type, size=6):
+    rand_string = ''.join(random.choice(string.digits) for _ in range(size))
+    return 'selenium-{}-{}'.format(object_type, rand_string)
+
+
 @ddt
 class TestForAdmin(unittest.TestCase):
     """Need user, with admin permission"""
 
     def setUp(self):
         self.conf = get_configuration()
+        self.driver = get_client_driver()
 
-        self.driver = webdriver.Firefox(
-            capabilities={"marionette": False},
-            executable_path='/usr/bin/firefox')
-        self.driver.implicitly_wait(self.conf.get('timeout'))
         login_for_user(self.driver,
                        self.conf.get('admin_user'),
                        self.conf.get('admin_user_pass'))
@@ -176,7 +186,7 @@ class TestForAdmin(unittest.TestCase):
         for number in range(2, 6):
             attribute = self.driver.find_element_by_xpath(
                 "//*[@id='volume_snapshots']/thead/tr[2]/th[{}]"
-                    .format(number)).get_attribute("class")
+                "".format(number)).get_attribute("class")
             assert "sortable" in attribute, \
                 "Page 'volume_snapshots' has unsortable item"
 
@@ -232,7 +242,7 @@ class TestForAdmin(unittest.TestCase):
             assert "ext-net" not in self.driver.find_element_by_xpath(
                 '//wizard/div/div[5]/ng-include/div/div/transfer-table'
                 '/div/div[2]/div[2]/available/table/tbody/tr[{}]'
-                    .format(number)).text, \
+                ''.format(number)).text, \
                 "ext-net network is  available for creating vm"
 
 
@@ -245,16 +255,15 @@ class TestForNotAdmin(unittest.TestCase):
 
     def setUp(self):
         self.conf = get_configuration()
+        self.driver = get_client_driver()
+
         self.volume_uuid = None
         self.image_snapshot_uuid = None
 
-        self.driver = webdriver.Firefox(
-            capabilities={"marionette": False},
-            executable_path='/usr/bin/firefox')
-        self.driver.implicitly_wait(self.conf.get('timeout'))
         self.wait = WebDriverWait(
             self.driver,
             self.conf.get('timeout_creation'))
+
         login_for_user(self.driver,
                        self.conf.get('not_admin_user'),
                        self.conf.get('not_admin_user_pass'))
@@ -447,7 +456,7 @@ class TestForNotAdmin(unittest.TestCase):
                 self.driver, By.CSS_SELECTOR,
                 'a.btn.btn-default.btn-sm.dropdown-toggle'):
             self.driver.find_element_by_css_selector(
-            'a.btn.btn-default.btn-sm.dropdown-toggle').click()
+                'a.btn.btn-default.btn-sm.dropdown-toggle').click()
 
         self.assertTrue(
             check_element_exists(
@@ -466,7 +475,6 @@ class TestForNotAdmin(unittest.TestCase):
                 "DNS"),
             "Dns dashboard isn't available "
         )
-
 
     def check_murano_dashboard_is_available(self):
         self.driver.get("{}{}".format(
