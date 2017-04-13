@@ -15,7 +15,6 @@ import string
 import unittest
 
 # ToDo(den) Fix test Hide network
-# ToDo(den) change simple assert to self.assert
 
 
 def get_configuration():
@@ -120,25 +119,25 @@ class TestForAdmin(unittest.TestCase):
         """
         # part for admin
         self.driver.get("{}{}".format(self.conf.get('BASE_URI'), '/admin/'))
-        assert "Volumes" in self.driver.find_element_by_xpath(
-            "//a[@href='/admin/volumes/']").text
-        assert "Volume Snapshots" in self.driver.find_element_by_xpath(
-            "//a[@href='/admin/volume_snapshots/']").text
-        assert "Images" in self.driver.find_element_by_xpath(
-            "//a[@href='/admin/images/']").text
-        assert "Image Snapshots" in self.driver.find_element_by_xpath(
-            "//a[@href='/admin/image_snapshots/']").text
+        self.assertIn("Volumes", self.driver.find_element_by_xpath(
+            "//a[@href='/admin/volumes/']").text)
+        self.assertIn("Volume Snapshots", self.driver.find_element_by_xpath(
+            "//a[@href='/admin/volume_snapshots/']").text)
+        self.assertIn("Images", self.driver.find_element_by_xpath(
+            "//a[@href='/admin/images/']").text)
+        self.assertIn("Image Snapshots", self.driver.find_element_by_xpath(
+            "//a[@href='/admin/image_snapshots/']").text)
 
         # part for project
         self.driver.get("{}{}".format(self.conf.get('BASE_URI'), '/project/'))
-        assert "Volumes" in self.driver.find_element_by_xpath(
-            "//a[@href='/project/volumes/']").text
-        assert "Volume Snapshots" in self.driver.find_element_by_xpath(
-            "//a[@href='/project/volume_snapshots/']").text
-        assert "Images" in self.driver.find_element_by_xpath(
-            "//a[@href='/project/images/']").text
-        assert "Image Snapshots" in self.driver.find_element_by_xpath(
-            "//a[@href='/project/image_snapshots/']").text
+        self.assertIn("Volumes", self.driver.find_element_by_xpath(
+            "//a[@href='/project/volumes/']").text)
+        self.assertIn("Volume Snapshots", self.driver.find_element_by_xpath(
+            "//a[@href='/project/volume_snapshots/']").text)
+        self.assertIn("Images", self.driver.find_element_by_xpath(
+            "//a[@href='/project/images/']").text)
+        self.assertIn("Image Snapshots", self.driver.find_element_by_xpath(
+            "//a[@href='/project/image_snapshots/']").text)
 
         report({"Split Images Snapshots off Images page": "Ok",
                 "Split Volume Snapshots off Volumes page": "Ok"})
@@ -178,8 +177,10 @@ class TestForAdmin(unittest.TestCase):
                 # It doesnt look well ):
                 "//*[@id='instances']/thead/tr[2]/th[{}]".format(number)) \
                 .get_attribute("class")
-            assert "sortable" in attribute, \
-                "Page 'instances' has unsortable item"
+            self.assertIn(
+                "sortable",
+                attribute,
+                "Page 'instances' has unsortable item")
 
         self.driver.get("{}{}".format(
             self.conf.get('BASE_URI'), '/project/images'))
@@ -187,8 +188,10 @@ class TestForAdmin(unittest.TestCase):
             attribute = self.driver.find_element_by_xpath(
                 "//*[@id='images']/thead/tr[2]/th[{}]".format(number))\
                 .get_attribute("class")
-            assert "sortable" in attribute, \
-                "Page 'images' has unsortable item"
+            self.assertIn(
+                "sortable",
+                attribute,
+                "Page 'images' has unsortable item")
 
         self.driver.get("{}{}".format(
             self.conf.get('BASE_URI'), '/project/image_snapshots'))
@@ -196,8 +199,10 @@ class TestForAdmin(unittest.TestCase):
             attribute = self.driver.find_element_by_xpath(
                 "//*[@id='image_snapshots']/thead/tr[2]/th[{}]"
                 .format(number)).get_attribute("class")
-            assert "sortable" in attribute, \
-                "Page 'image_snapshots' has unsortable item"
+            self.assertIn(
+                "sortable",
+                attribute,
+                "Page 'image_snapshots' has unsortable item")
 
         self.driver.get("{}{}".format(
             self.conf.get('BASE_URI'), '/project/volumes'))
@@ -205,8 +210,10 @@ class TestForAdmin(unittest.TestCase):
             attribute = self.driver.find_element_by_xpath(
                 "//*[@id='volumes']/thead/tr[2]/th[{}]".format(number))\
                 .get_attribute("class")
-            assert "sortable" in attribute, \
-                "Page 'volumes' has unsortable item"
+            self.assertIn(
+                "sortable",
+                attribute,
+                "Page 'volumes' has unsortable item")
 
         self.driver.get("{}{}".format(
             self.conf.get('BASE_URI'), '/project/volume_snapshots'))
@@ -214,8 +221,10 @@ class TestForAdmin(unittest.TestCase):
             attribute = self.driver.find_element_by_xpath(
                 "//*[@id='volume_snapshots']/thead/tr[2]/th[{}]"
                 "".format(number)).get_attribute("class")
-            assert "sortable" in attribute, \
-                "Page 'volume_snapshots' has unsortable item"
+            self.assertIn(
+                "sortable",
+                attribute,
+                "Page 'volume_snapshots' has unsortable item")
 
         report({"Instances screen columns ordering": "Ok",
                 "Volumes screen columns ordering": "Ok",
@@ -230,27 +239,35 @@ class TestForAdmin(unittest.TestCase):
 
         self.driver.get("{}{}".format(
             self.conf.get('BASE_URI'), '/project/image_snapshots'))
-        assert "Image Snapshots" in self.driver.find_element_by_xpath(
-            "//*[@id='content_body']//h1").text, \
-            "The page '/project/image_snapshots' has wrong title"
+        self.assertIn(
+            "Image Snapshots",
+            self.driver.find_element_by_xpath(
+                "//*[@id='content_body']//h1").text,
+            "The page '/project/image_snapshots' has wrong title")
 
         self.driver.get("{}{}".format(
             self.conf.get('BASE_URI'), '/admin/image_snapshots'))
-        assert "Image Snapshots" in self.driver.find_element_by_xpath(
-            "//*[@id='content_body']//h1").text, \
-            "The page '/admin/image_snapshots' has wrong title"
+        self.assertIn(
+            "Image Snapshots",
+            self.driver.find_element_by_xpath(
+                "//*[@id='content_body']//h1").text,
+            "The page '/admin/image_snapshots' has wrong title")
 
         self.driver.get("{}{}".format(
             self.conf.get('BASE_URI'), '/project/volume_snapshots'))
-        assert "Volume Snapshots" in self.driver.find_element_by_xpath(
-            "//*[@id='content_body']//h1").text, \
-            "The page '/project/volume_snapshots' has wrong title"
+        self.assertIn(
+            "Volume Snapshots",
+            self.driver.find_element_by_xpath(
+                "//*[@id='content_body']//h1").text,
+            "The page '/project/volume_snapshots' has wrong title")
 
         self.driver.get("{}{}".format(
             self.conf.get('BASE_URI'), '/admin/volume_snapshots'))
-        assert "Volume Snapshots" in self.driver.find_element_by_xpath(
-            "//*[@id='content_body']//h1").text, \
-            "The page '/admin/volume_snapshots' has wrong title"
+        self.assertIn(
+            "Volume Snapshots",
+            self.driver.find_element_by_xpath(
+                "//*[@id='content_body']//h1").text,
+            "The page '/admin/volume_snapshots' has wrong title")
 
         report({"Image Snapshots page title": "Ok",
                 "Volume Snapshots page title": "Ok"})
@@ -352,8 +369,10 @@ class TestForNotAdmin(unittest.TestCase):
     def test_for_admins_pages(self, value):
 
         self.driver.get("{}{}".format(self.conf.get('BASE_URI'), value))
-        assert "Login - Private Cloud Dashboard" in self.driver.title, \
-            "The page '{}' is available for non-admin".format(value)
+        self.assertIn(
+            "Login - Private Cloud Dashboard",
+            self.driver.title,
+            "The page '{}' is available for non-admin".format(value))
 
         report({"Check Admin pages are not available for non-admin {}"
                 "".format(value): "Ok"})
@@ -365,17 +384,19 @@ class TestForNotAdmin(unittest.TestCase):
             self.conf.get('BASE_URI'), "/project/images"))
 
         # Check there is something
-        assert check_element_exists(
-            self.driver,
-            "xpath",
-            '//*[contains(@id, "images__row")]'), \
-            "The page isnt valid"
+        self.assertTrue(
+            check_element_exists(
+                self.driver,
+                "xpath",
+                '//*[contains(@id, "images__row")]'),
+            "The page is not valid")
 
-        assert not check_element_exists(
-            self.driver,
-            By.ID,
-            "images__action_create"), \
-            "Create Image button is available for non-admin"
+        self.assertFalse(
+            check_element_exists(
+                self.driver,
+                By.ID,
+                "images__action_create"),
+            "Create Image button is available for non-admin")
 
         report({"Create Image button available only for admin": "Ok"})
 
