@@ -14,8 +14,6 @@ import random
 import string
 import unittest
 
-# ToDo(den) Fix test Hide network
-
 
 def get_configuration():
     """function returns configuration for environment"""
@@ -276,34 +274,6 @@ class TestForAdmin(unittest.TestCase):
         report({"Image Snapshots page title": "Ok",
                 "Volume Snapshots page title": "Ok"})
 
-    def test_checking_to_hide_external_network(self):
-        """Hide external networks from instance creation screen"""
-
-        self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), '/project/instances'))
-        self.driver.find_element_by_id('instances__action_launch-ng').click()
-        self.driver.find_element_by_xpath("//button[3]").click()
-
-        # instead of sleep,
-        self.driver.find_elements_by_xpath(
-            '//wizard/div/div[5]/ng-include/div/div/transfer-table/div/div'
-            '[2]/div[2]/available/table/tbody/tr')
-
-        amount = len(self.driver.find_elements_by_xpath(
-            '//wizard/div/div[5]/ng-include/div/div/transfer-table/div/div'
-            '[2]/div[2]/available/table/tbody/tr'))
-
-        assert amount > 1, "Check me"
-
-        for number in range(1, amount):
-            assert "ext-net" not in self.driver.find_element_by_xpath(
-                '//wizard/div/div[5]/ng-include/div/div/transfer-table'
-                '/div/div[2]/div[2]/available/table/tbody/tr[{}]'
-                ''.format(number)).text, \
-                "ext-net network is  available for creating vm"
-
-        report({"Hide external networks from instance creation screen": "Ok"})
-
 
 @ddt
 class TestForNotAdmin(unittest.TestCase):
@@ -362,6 +332,31 @@ class TestForNotAdmin(unittest.TestCase):
                 "Delete Image Snapshot").click()
 
         self.driver.close()
+
+    def test_checking_to_hide_external_network(self):
+        """Hide external networks from instance creation screen"""
+
+        self.driver.get("{}{}".format(
+            self.conf.get('BASE_URI'), '/project/instances'))
+        self.driver.find_element_by_id('instances__action_launch-ng').click()
+        self.driver.find_element_by_xpath("//button[3]").click()
+
+        self.wait.until(EC.element_to_be_clickable(
+            (By.XPATH, '//wizard/div/div[5]/ng-include/div/div/transfer-table'
+                       '/div/div[2]/div[2]/available/table/tbody/tr[1]')))
+
+        amount = len(self.driver.find_elements_by_xpath(
+            '//wizard/div/div[5]/ng-include/div/div/transfer-table/div/div'
+            '[2]/div[2]/available/table/tbody/tr'))
+
+        for number in range(1, amount):
+            assert "ext-net" not in self.driver.find_element_by_xpath(
+                '//wizard/div/div[5]/ng-include/div/div/transfer-table'
+                '/div/div[2]/div[2]/available/table/tbody/tr[{}]'
+                ''.format(number)).text, \
+                "ext-net network is  available for creating vm"
+
+        report({"Hide external networks from instance creation screen": "Ok"})
 
     @data("/admin/info/",
           "/admin/flavors/",
