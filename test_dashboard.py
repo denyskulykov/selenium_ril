@@ -62,6 +62,10 @@ def login_for_user(driver, user, password):
     conf = get_configuration()
 
     driver.get("{}{}".format(conf.get('BASE_URI'), conf.get('login_page')))
+
+    if not driver.find_element_by_id("id_username").is_displayed():
+        driver.find_element_by_xpath('//*[@value="credentials"]').click()
+
     driver.find_element_by_id("id_username").send_keys(user)
     driver.find_element_by_id("id_password").send_keys(password)
     driver.find_element_by_id("loginBtn").submit()
