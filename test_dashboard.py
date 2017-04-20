@@ -22,11 +22,14 @@ class TestForAdmin(unittest.TestCase):
 
     def setUp(self):
         self.driver = helpers.get_client_driver()
-
-        helpers.login_for_user(
-            self.driver,
-            conf.get('admin_user'),
-            conf.get('admin_user_pass'))
+        try:
+            helpers.login_for_user(
+                self.driver,
+                conf.get('admin_user'),
+                conf.get('admin_user_pass'))
+        except Exception as e:
+            self.tearDown()
+            raise Exception(e.message)
 
     def tearDown(self):
         if sys.exc_info()[0]:
@@ -211,11 +214,14 @@ class TestForNotAdmin(unittest.TestCase):
         self.wait = WebDriverWait(
             self.driver,
             conf.get('timeout_creation'))
-
-        helpers.login_for_user(
-            self.driver,
-            conf.get('not_admin_user'),
-            conf.get('not_admin_user_pass'))
+        try:
+            helpers.login_for_user(
+                self.driver,
+                conf.get('not_admin_user'),
+                conf.get('not_admin_user_pass'))
+        except Exception as e:
+            self.tearDown()
+            raise Exception(e.message)
 
     def tearDown(self):
         if self.volume_uuid:

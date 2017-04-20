@@ -27,7 +27,8 @@ def login_for_user(driver, user, password):
     driver.find_element_by_id("id_password").send_keys(password)
     driver.find_element_by_id("loginBtn").submit()
 
-    assert conf.get('login_page') not in driver.current_url, "Unauthorized"
+    if conf.get('login_page') in driver.current_url:
+        raise Exception("Unauthorized")
 
 
 def check_element_exists(driver, by, value):
