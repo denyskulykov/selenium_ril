@@ -13,3 +13,5 @@ timeout: 20
 timeout_creation: 180
 default_image_name: <cirros_image_name>
 default_vm_name: <name of vm>
+
+folder_screenshot: <path of folder for screenshot>

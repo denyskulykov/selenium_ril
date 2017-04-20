@@ -1,8 +1,7 @@
-
-
+from ddt import ddt, data
+from datetime import datetime
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
-from ddt import ddt, data
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -12,6 +11,7 @@ import json
 import yaml
 import random
 import string
+import sys
 import unittest
 
 
@@ -50,6 +50,14 @@ def report(test=None, action="add"):
         list_test.update(test)
     elif action == "report":
         print json.dumps(list_test, indent=4)
+
+
+def create_screenshot(driver, name_of_test):
+    conf = get_configuration()
+
+    now = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    driver.save_screenshot("{}{}-{}.png".format(
+        conf.get("folder_screenshot"),name_of_test, now))
 
 
 def tearDownModule():
@@ -112,6 +120,9 @@ class TestForAdmin(unittest.TestCase):
                        self.conf.get('admin_user_pass'))
 
     def tearDown(self):
+        if sys.exc_info()[0]:
+            create_screenshot(self.driver, self._testMethodName)
+
         self.driver.close()
 
     def test_openstack_dashboard_split_pages(self):
@@ -330,6 +341,9 @@ class TestForNotAdmin(unittest.TestCase):
                     self.image_snapshot_uuid)).click()
             self.driver.find_element_by_link_text(
                 "Delete Image Snapshot").click()
+
+        if sys.exc_info()[0]:
+            create_screenshot(self.driver, self._testMethodName)
 
         self.driver.close()
 
