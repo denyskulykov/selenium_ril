@@ -1,110 +1,19 @@
 from ddt import ddt, data
-from datetime import datetime
-from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
-import os
-import json
-import yaml
-import random
-import string
 import sys
 import unittest
 
+import utils
+import helpers
 
-def get_configuration():
-    """function returns configuration for environment"""
-    global_config_file = os.path.join(os.path.dirname(
-        os.path.abspath(__file__)), "global_config.yaml")
-
-    with open(global_config_file, 'r') as file:
-        global_config = yaml.load(file)
-
-    return global_config
-
-
-def get_client_driver():
-    conf = get_configuration()
-
-    driver = webdriver.Firefox(
-        capabilities={"marionette": False},
-        executable_path='/usr/bin/firefox')
-    driver.implicitly_wait(conf.get('timeout'))
-    if conf.get("minimize_window"):
-        driver.set_window_position(2000, 0)
-    return driver
-
-
-list_test = {}
-
-
-def report(test=None, action="add"):
-    """action = "report", test = None
-
-    action = "add", {"name test": "status"}
-    """
-    if action == "add":
-        list_test.update(test)
-    elif action == "report":
-        print json.dumps(list_test, indent=4)
-
-
-def create_screenshot(driver, name_of_test):
-    conf = get_configuration()
-
-    now = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    driver.save_screenshot("{}{}-{}.png".format(
-        conf.get("folder_screenshot"),name_of_test, now))
+conf = utils.get_configuration()
 
 
 def tearDownModule():
-    report(action="report")
-
-
-def login_for_user(driver, user, password):
-    conf = get_configuration()
-
-    driver.get("{}{}".format(conf.get('BASE_URI'), conf.get('login_page')))
-
-    if not driver.find_element_by_id("id_username").is_displayed():
-        driver.find_element_by_xpath('//*[@value="credentials"]').click()
-
-    driver.find_element_by_id("id_username").send_keys(user)
-    driver.find_element_by_id("id_password").send_keys(password)
-    driver.find_element_by_id("loginBtn").submit()
-
-    assert conf.get('login_page') not in driver.current_url, "Unauthorized"
-
-
-def check_element_exists(driver, by, value):
-    """We can use Class By or the simple sting
-
-    By.ID = "id"
-    By.XPATH = "xpath"
-    By.LINK_TEXT = "link text"
-    By.PARTIAL_LINK_TEXT = "partial link text"
-    By.NAME = "name"
-    By.TAG_NAME = "tag name"
-    By.CLASS_NAME = "class name"
-    By.CSS_SELECTOR = "css selector"
-    """
-    conf = get_configuration()
-    try:
-        driver.implicitly_wait(3)
-        driver.find_element(by, value)
-    except NoSuchElementException:
-        return False
-    finally:
-        driver.implicitly_wait(conf.get("timeout"))
-    return True
-
-
-def gen_rand_string(object_type, size=6):
-    rand_string = ''.join(random.choice(string.digits) for _ in range(size))
-    return 'selenium-{}-{}'.format(object_type, rand_string)
+    utils.report(action="report")
 
 
 @ddt
@@ -112,16 +21,16 @@ class TestForAdmin(unittest.TestCase):
     """Need user, with admin permission"""
 
     def setUp(self):
-        self.conf = get_configuration()
-        self.driver = get_client_driver()
+        self.driver = helpers.get_client_driver()
 
-        login_for_user(self.driver,
-                       self.conf.get('admin_user'),
-                       self.conf.get('admin_user_pass'))
+        helpers.login_for_user(
+            self.driver,
+            conf.get('admin_user'),
+            conf.get('admin_user_pass'))
 
     def tearDown(self):
         if sys.exc_info()[0]:
-            create_screenshot(self.driver, self._testMethodName)
+            helpers.create_screenshot(self.driver, self._testMethodName)
 
         self.driver.close()
 
@@ -131,7 +40,7 @@ class TestForAdmin(unittest.TestCase):
         Split Volume Snapshots off Volumes page
         """
         # part for admin
-        self.driver.get("{}{}".format(self.conf.get('BASE_URI'), '/admin/'))
+        self.driver.get("{}{}".format(conf.get('BASE_URI'), '/admin/'))
         self.assertIn("Volumes", self.driver.find_element_by_xpath(
             "//a[@href='/admin/volumes/']").text)
         self.assertIn("Volume Snapshots", self.driver.find_element_by_xpath(
@@ -142,7 +51,7 @@ class TestForAdmin(unittest.TestCase):
             "//a[@href='/admin/image_snapshots/']").text)
 
         # part for project
-        self.driver.get("{}{}".format(self.conf.get('BASE_URI'), '/project/'))
+        self.driver.get("{}{}".format(conf.get('BASE_URI'), '/project/'))
         self.assertIn("Volumes", self.driver.find_element_by_xpath(
             "//a[@href='/project/volumes/']").text)
         self.assertIn("Volume Snapshots", self.driver.find_element_by_xpath(
@@ -152,14 +61,14 @@ class TestForAdmin(unittest.TestCase):
         self.assertIn("Image Snapshots", self.driver.find_element_by_xpath(
             "//a[@href='/project/image_snapshots/']").text)
 
-        report({"Split Images Snapshots off Images page": "Ok",
-                "Split Volume Snapshots off Volumes page": "Ok"})
+        utils.report({"Split Images Snapshots off Images page": "Ok",
+                      "Split Volume Snapshots off Volumes page": "Ok"})
 
     def test_images_filter(self):
         """Extra filters on Images page"""
 
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), '/project/images'))
+            conf.get('BASE_URI'), '/project/images'))
 
         filters = self.driver.find_elements_by_name("images__filter__q")
         filter_values = [f.text.split(" (")[0] for f in filters]
@@ -168,7 +77,7 @@ class TestForAdmin(unittest.TestCase):
         self.assertEqual(len(expected_filters), len(filter_values))
         self.assertSequenceEqual(filter_values, expected_filters)
 
-        report({"Extra filters on Images page": "Ok"})
+        utils.report({"Extra filters on Images page": "Ok"})
 
     def test_sortable_for_columns(self):
         """Instances screen columns ordering
@@ -179,7 +88,7 @@ class TestForAdmin(unittest.TestCase):
         Volume Snapshots screen columns ordering
         """
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), '/project/instances'))
+            conf.get('BASE_URI'), '/project/instances'))
         for number in range(2, 11):
 
             # Skip column 'size'
@@ -196,7 +105,7 @@ class TestForAdmin(unittest.TestCase):
                 "Page 'instances' has unsortable item")
 
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), '/project/images'))
+            conf.get('BASE_URI'), '/project/images'))
         for number in range(2, 9):
             attribute = self.driver.find_element_by_xpath(
                 "//*[@id='images']/thead/tr[2]/th[{}]".format(number))\
@@ -207,7 +116,7 @@ class TestForAdmin(unittest.TestCase):
                 "Page 'images' has unsortable item")
 
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), '/project/image_snapshots'))
+            conf.get('BASE_URI'), '/project/image_snapshots'))
         for number in range(2, 8):
             attribute = self.driver.find_element_by_xpath(
                 "//*[@id='image_snapshots']/thead/tr[2]/th[{}]"
@@ -218,7 +127,7 @@ class TestForAdmin(unittest.TestCase):
                 "Page 'image_snapshots' has unsortable item")
 
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), '/project/volumes'))
+            conf.get('BASE_URI'), '/project/volumes'))
         for number in range(2, 9):
             attribute = self.driver.find_element_by_xpath(
                 "//*[@id='volumes']/thead/tr[2]/th[{}]".format(number))\
@@ -229,7 +138,7 @@ class TestForAdmin(unittest.TestCase):
                 "Page 'volumes' has unsortable item")
 
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), '/project/volume_snapshots'))
+            conf.get('BASE_URI'), '/project/volume_snapshots'))
         for number in range(2, 6):
             attribute = self.driver.find_element_by_xpath(
                 "//*[@id='volume_snapshots']/thead/tr[2]/th[{}]"
@@ -239,11 +148,11 @@ class TestForAdmin(unittest.TestCase):
                 attribute,
                 "Page 'volume_snapshots' has unsortable item")
 
-        report({"Instances screen columns ordering": "Ok",
-                "Volumes screen columns ordering": "Ok",
-                "Volume Snapshots screen columns ordering": "Ok",
-                "Images screen columns ordering": "Ok",
-                "Image Snapshots screen columns ordering": "Ok"})
+        utils.report({"Instances screen columns ordering": "Ok",
+                      "Volumes screen columns ordering": "Ok",
+                      "Volume Snapshots screen columns ordering": "Ok",
+                      "Images screen columns ordering": "Ok",
+                      "Image Snapshots screen columns ordering": "Ok"})
 
     def test_title_for_snapshot_page(self):
         """Image Snapshots page title
@@ -251,7 +160,7 @@ class TestForAdmin(unittest.TestCase):
         Volume Snapshots page title"""
 
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), '/project/image_snapshots'))
+            conf.get('BASE_URI'), '/project/image_snapshots'))
         self.assertIn(
             "Image Snapshots",
             self.driver.find_element_by_xpath(
@@ -259,7 +168,7 @@ class TestForAdmin(unittest.TestCase):
             "The page '/project/image_snapshots' has wrong title")
 
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), '/admin/image_snapshots'))
+            conf.get('BASE_URI'), '/admin/image_snapshots'))
         self.assertIn(
             "Image Snapshots",
             self.driver.find_element_by_xpath(
@@ -267,7 +176,7 @@ class TestForAdmin(unittest.TestCase):
             "The page '/admin/image_snapshots' has wrong title")
 
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), '/project/volume_snapshots'))
+            conf.get('BASE_URI'), '/project/volume_snapshots'))
         self.assertIn(
             "Volume Snapshots",
             self.driver.find_element_by_xpath(
@@ -275,15 +184,15 @@ class TestForAdmin(unittest.TestCase):
             "The page '/project/volume_snapshots' has wrong title")
 
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), '/admin/volume_snapshots'))
+            conf.get('BASE_URI'), '/admin/volume_snapshots'))
         self.assertIn(
             "Volume Snapshots",
             self.driver.find_element_by_xpath(
                 "//*[@id='content_body']//h1").text,
             "The page '/admin/volume_snapshots' has wrong title")
 
-        report({"Image Snapshots page title": "Ok",
-                "Volume Snapshots page title": "Ok"})
+        utils.report({"Image Snapshots page title": "Ok",
+                      "Volume Snapshots page title": "Ok"})
 
 
 @ddt
@@ -294,24 +203,24 @@ class TestForNotAdmin(unittest.TestCase):
         super(TestForNotAdmin, self).__init__(*args, **kwargs)
 
     def setUp(self):
-        self.conf = get_configuration()
-        self.driver = get_client_driver()
+        self.driver = helpers.get_client_driver()
 
         self.volume_uuid = None
         self.image_snapshot_uuid = None
 
         self.wait = WebDriverWait(
             self.driver,
-            self.conf.get('timeout_creation'))
+            conf.get('timeout_creation'))
 
-        login_for_user(self.driver,
-                       self.conf.get('not_admin_user'),
-                       self.conf.get('not_admin_user_pass'))
+        helpers.login_for_user(
+            self.driver,
+            conf.get('not_admin_user'),
+            conf.get('not_admin_user_pass'))
 
     def tearDown(self):
         if self.volume_uuid:
             self.driver.get("{}{}".format(
-                self.conf.get('BASE_URI'),
+                conf.get('BASE_URI'),
                 '/project/volumes/{}/'.format(self.volume_uuid)))
             self.driver.find_element_by_css_selector(
                 'a.btn.btn-default.btn-sm.dropdown-toggle').click()
@@ -325,12 +234,12 @@ class TestForNotAdmin(unittest.TestCase):
 
         if self.image_snapshot_uuid:
             self.driver.get("{}{}".format(
-                self.conf.get('BASE_URI'),
+                conf.get('BASE_URI'),
                 '/project/image_snapshots/{}/'.format(
                     self.image_snapshot_uuid)))
 
             # There is probably list action
-            if check_element_exists(
+            if helpers.check_element_exists(
                     self.driver, By.CSS_SELECTOR,
                     'a.btn.btn-default.btn-sm.dropdown-toggle'):
                 self.driver.find_element_by_css_selector(
@@ -343,7 +252,7 @@ class TestForNotAdmin(unittest.TestCase):
                 "Delete Image Snapshot").click()
 
         if sys.exc_info()[0]:
-            create_screenshot(self.driver, self._testMethodName)
+            helpers.create_screenshot(self.driver, self._testMethodName)
 
         self.driver.close()
 
@@ -351,7 +260,7 @@ class TestForNotAdmin(unittest.TestCase):
         """Hide external networks from instance creation screen"""
 
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), '/project/instances'))
+            conf.get('BASE_URI'), '/project/instances'))
         self.driver.find_element_by_id('instances__action_launch-ng').click()
         self.driver.find_element_by_xpath("//button[3]").click()
 
@@ -370,7 +279,8 @@ class TestForNotAdmin(unittest.TestCase):
                 ''.format(number)).text, \
                 "ext-net network is  available for creating vm"
 
-        report({"Hide external networks from instance creation screen": "Ok"})
+        utils.report(
+            {"Hide external networks from instance creation screen": "Ok"})
 
     @data("/admin/info/",
           "/admin/flavors/",
@@ -381,59 +291,58 @@ class TestForNotAdmin(unittest.TestCase):
           "/admin/metadata_defs/")
     def test_for_admins_pages(self, value):
 
-        self.driver.get("{}{}".format(self.conf.get('BASE_URI'), value))
+        self.driver.get("{}{}".format(conf.get('BASE_URI'), value))
         self.assertIn(
-            "Login - Private Cloud Dashboard",
-            self.driver.title,
+            conf.get('login_page'), self.driver.current_url,
             "The page '{}' is available for non-admin".format(value))
 
-        report({"Check Admin pages are not available for non-admin {}"
-                "".format(value): "Ok"})
+        utils.report({"Check Admin pages are not available for non-admin {}"
+                      "".format(value): "Ok"})
 
     def test_button_image_create(self):
         """"Create Image" button available only for admin"""
 
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), "/project/images"))
+            conf.get('BASE_URI'), "/project/images"))
 
         # Check there is something
         self.assertTrue(
-            check_element_exists(
+            helpers.check_element_exists(
                 self.driver,
                 "xpath",
                 '//*[contains(@id, "images__row")]'),
             "The page is not valid")
 
         self.assertFalse(
-            check_element_exists(
+            helpers.check_element_exists(
                 self.driver,
                 By.ID,
                 "images__action_create"),
             "Create Image button is available for non-admin")
 
-        report({"Create Image button available only for admin": "Ok"})
+        utils.report({"Create Image button available only for admin": "Ok"})
 
     def test_image_description_is_read_only(self):
         """Image description is read-only for non-admin
 
         Need to have an image"""
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), "/project/images"))
+            conf.get('BASE_URI'), "/project/images"))
 
         # Check there is something
-        assert check_element_exists(
+        assert helpers.check_element_exists(
             self.driver,
             "xpath",
             '//*[contains(@id, "images__row")]'),\
             "There isn't any images"
 
-        assert not check_element_exists(
+        assert not helpers.check_element_exists(
             self.driver,
             "xpath",
             '//*[contains(@id, "images__row")]//button'), \
             "Non-admin can change image description"
 
-        report({"Image description is read-only for non-admin": "Ok"})
+        utils.report({"Image description is read-only for non-admin": "Ok"})
 
     def test_check_empty_name_for_volume(self):
         """Check "empty" volume 'name' field
@@ -441,29 +350,34 @@ class TestForNotAdmin(unittest.TestCase):
         Need to have an image
         """
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), '/project/images'))
+            conf.get('BASE_URI'), '/project/images'))
 
         # ToDo(den) do it better, choosing any image
         self.driver.find_element_by_xpath(
             "//*[@name='images__filter__q'][4]").click()
 
-        if not check_element_exists(
+        if not helpers.check_element_exists(
             self.driver,
             By.LINK_TEXT,
-            self.conf.get('default_image_name')
+            conf.get('default_image_name')
         ):
             raise Exception(
                 "Default image '{}' was not found on Horizon "
-                "Images page".format(self.conf.get('default_image_name')))
+                "Images page".format(conf.get('default_image_name')))
 
         self.driver.find_element_by_link_text(
-                self.conf.get('default_image_name')).click()
+                conf.get('default_image_name')).click()
 
-        self.driver.find_element_by_css_selector(
-            "a.btn.btn-default.btn-sm.dropdown-toggle").click()
+        # There is probably list action
+        if helpers.check_element_exists(
+                self.driver, By.CSS_SELECTOR,
+                'a.btn.btn-default.btn-sm.dropdown-toggle'):
+            self.driver.find_element_by_css_selector(
+                'a.btn.btn-default.btn-sm.dropdown-toggle').click()
+
         self.driver.find_element_by_link_text("Create Volume").click()
         self.driver.find_element_by_id('id_name').clear()
-        volume_description = gen_rand_string('volume')
+        volume_description = utils.gen_rand_string('volume')
         self.driver.find_element_by_id('id_description').send_keys(
             volume_description)
         self.driver.find_element_by_xpath("//input[@type='submit']").submit()
@@ -496,25 +410,25 @@ class TestForNotAdmin(unittest.TestCase):
             "div.info.row.detail")
         self.assertTrue(volume_description in overview.text)
 
-        report({"Check 'empty' volume 'name' field": "Ok"})
+        utils.report({"Check 'empty' volume 'name' field": "Ok"})
 
     def test_check_allow_delete_image_snapshots_for_non_admin(self):
         """Allow to delete image snapshots for non-admin user"""
 
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), "/project/instances"))
+            conf.get('BASE_URI'), "/project/instances"))
 
-        if not check_element_exists(
+        if not helpers.check_element_exists(
             self.driver,
             By.LINK_TEXT,
-            self.conf.get('default_vm_name')
+            conf.get('default_vm_name')
         ):
             raise Exception(
                 "Default vm '{}' was not found on Horizon "
-                "Instance page".format(self.conf.get('default_vm_name')))
+                "Instance page".format(conf.get('default_vm_name')))
 
         self.driver.find_element_by_link_text(
-            self.conf.get('default_vm_name')).click()
+            conf.get('default_vm_name')).click()
 
         # looking for button
         self.driver.find_element_by_xpath(
@@ -526,7 +440,7 @@ class TestForNotAdmin(unittest.TestCase):
         self.driver.find_element_by_id(
             "instances__row_{}__action_snapshot".format(self.vm_uuid)).click()
 
-        name_snapshot = gen_rand_string('snapshot')
+        name_snapshot = utils.gen_rand_string('snapshot')
         self.driver.find_element_by_id("id_name").send_keys(name_snapshot)
 
         self.driver.find_element_by_xpath(
@@ -537,47 +451,48 @@ class TestForNotAdmin(unittest.TestCase):
         self.image_snapshot_uuid = self.driver.current_url.split('/')[-2]
 
         # There is probably list action
-        if check_element_exists(
+        if helpers.check_element_exists(
                 self.driver, By.CSS_SELECTOR,
                 'a.btn.btn-default.btn-sm.dropdown-toggle'):
             self.driver.find_element_by_css_selector(
                 'a.btn.btn-default.btn-sm.dropdown-toggle').click()
 
         self.assertTrue(
-            check_element_exists(
+            helpers.check_element_exists(
                 self.driver, By.ID,
                 "image_snapshots__row_{}__action_delete".format(
                     self.image_snapshot_uuid)))
 
-        report({"Allow to delete image snapshots for non-admin user": "Ok"})
+        utils.report(
+            {"Allow to delete image snapshots for non-admin user": "Ok"})
 
     def check_dns_dashboard_is_available(self):
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), "/project/dns_domains/"))
+            conf.get('BASE_URI'), "/project/dns_domains/"))
 
         self.assertTrue(
-            check_element_exists(
+            helpers.check_element_exists(
                 self.driver,
                 By.LINK_TEXT,
                 "DNS"),
             "Dns dashboard isn't available"
         )
 
-        report({"Dns dashboard is available": "Ok"})
+        utils.report({"Dns dashboard is available": "Ok"})
 
     def check_murano_dashboard_is_available(self):
         self.driver.get("{}{}".format(
-            self.conf.get('BASE_URI'), "/murano/environments/"))
+            conf.get('BASE_URI'), "/murano/environments/"))
 
         self.assertTrue(
-            check_element_exists(
+            helpers.check_element_exists(
                 self.driver,
                 By.LINK_TEXT,
                 "Murano"),
             "Murano dashboard isn't available"
         )
 
-        report({"Murano dashboard is available": "Ok"})
+        utils.report({"Murano dashboard is available": "Ok"})
 
 
 if __name__ == '__main__':
