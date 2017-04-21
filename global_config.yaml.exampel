@@ -4,10 +4,14 @@ minimize_window: False
 BASE_URI: "https://"
 login_page: "/auth/login/"
 
-admin_user: "admin"
-admin_user_pass: ""
-not_admin_user: "non_admin"
-not_admin_user_pass: ""
+saml_auth: <True/False>
+
+saml_user: <user>
+saml_user_pass: <pass>
+admin_user: <user>
+admin_user_pass: <pass>
+not_admin_user: <user>
+not_admin_user_pass: <pass>
 
 timeout: 20
 timeout_creation: 180

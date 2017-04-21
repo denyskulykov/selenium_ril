@@ -22,16 +22,75 @@ class TestForAdmin(unittest.TestCase):
 
     def setUp(self):
         self.driver = helpers.get_client_driver()
-        try:
-            helpers.login_for_user(
-                self.driver,
-                conf.get('admin_user'),
-                conf.get('admin_user_pass'))
-        except Exception as e:
-            self.tearDown()
-            raise Exception(e.message)
+        helpers.safe_login_for_user(
+            self, conf.get('admin_user'), conf.get('admin_user_pass'))
 
     def tearDown(self):
+        if sys.exc_info()[0]:
+            helpers.create_screenshot(self.driver, self._testMethodName)
+
+        self.driver.close()
+
+
+@ddt
+class TestForNotAdmin(unittest.TestCase):
+    """Need user, without admin permission"""
+
+    def __init__(self, *args, **kwargs):
+        super(TestForNotAdmin, self).__init__(*args, **kwargs)
+
+    def setUp(self):
+        self.driver = helpers.get_client_driver()
+
+        self.volume_uuid = None
+        self.image_snapshot_uuid = None
+
+        self.wait = WebDriverWait(
+            self.driver,
+            conf.get('timeout_creation'))
+
+        if conf.get('saml_auth'):
+            helpers.saml_login(self.driver)
+        else:
+            helpers.safe_login_for_user(
+                self,
+                conf.get('not_admin_user'),
+                conf.get('not_admin_user_pass'))
+
+    def tearDown(self):
+        if self.volume_uuid:
+            self.driver.get("{}{}".format(
+                conf.get('BASE_URI'),
+                '/project/volumes/{}/'.format(self.volume_uuid)))
+            self.driver.find_element_by_css_selector(
+                'a.btn.btn-default.btn-sm.dropdown-toggle').click()
+            self.driver.find_element_by_id(
+                "volumes__row_{}__action_delete".format(
+                    self.volume_uuid)).click()
+            confirm_delete = self.driver.find_element_by_css_selector(
+                'a.btn.btn-primary')
+            self.assertEqual(confirm_delete.text, "Delete Volume")
+            confirm_delete.click()
+
+        if self.image_snapshot_uuid:
+            self.driver.get("{}{}".format(
+                conf.get('BASE_URI'),
+                '/project/image_snapshots/{}/'.format(
+                    self.image_snapshot_uuid)))
+
+            # There is probably list action
+            if helpers.check_element_exists(
+                    self.driver, By.CSS_SELECTOR,
+                    'a.btn.btn-default.btn-sm.dropdown-toggle'):
+                self.driver.find_element_by_css_selector(
+                    'a.btn.btn-default.btn-sm.dropdown-toggle').click()
+
+            self.driver.find_element_by_id(
+               "image_snapshots__row_{}__action_delete".format(
+                    self.image_snapshot_uuid)).click()
+            self.driver.find_element_by_link_text(
+                "Delete Image Snapshot").click()
+
         if sys.exc_info()[0]:
             helpers.create_screenshot(self.driver, self._testMethodName)
 
@@ -196,71 +255,6 @@ class TestForAdmin(unittest.TestCase):
 
         utils.report({"Image Snapshots page title": "Ok",
                       "Volume Snapshots page title": "Ok"})
-
-
-@ddt
-class TestForNotAdmin(unittest.TestCase):
-    """Need user, without admin permission"""
-
-    def __init__(self, *args, **kwargs):
-        super(TestForNotAdmin, self).__init__(*args, **kwargs)
-
-    def setUp(self):
-        self.driver = helpers.get_client_driver()
-
-        self.volume_uuid = None
-        self.image_snapshot_uuid = None
-
-        self.wait = WebDriverWait(
-            self.driver,
-            conf.get('timeout_creation'))
-        try:
-            helpers.login_for_user(
-                self.driver,
-                conf.get('not_admin_user'),
-                conf.get('not_admin_user_pass'))
-        except Exception as e:
-            self.tearDown()
-            raise Exception(e.message)
-
-    def tearDown(self):
-        if self.volume_uuid:
-            self.driver.get("{}{}".format(
-                conf.get('BASE_URI'),
-                '/project/volumes/{}/'.format(self.volume_uuid)))
-            self.driver.find_element_by_css_selector(
-                'a.btn.btn-default.btn-sm.dropdown-toggle').click()
-            self.driver.find_element_by_id(
-                "volumes__row_{}__action_delete".format(
-                    self.volume_uuid)).click()
-            confirm_delete = self.driver.find_element_by_css_selector(
-                'a.btn.btn-primary')
-            self.assertEqual(confirm_delete.text, "Delete Volume")
-            confirm_delete.click()
-
-        if self.image_snapshot_uuid:
-            self.driver.get("{}{}".format(
-                conf.get('BASE_URI'),
-                '/project/image_snapshots/{}/'.format(
-                    self.image_snapshot_uuid)))
-
-            # There is probably list action
-            if helpers.check_element_exists(
-                    self.driver, By.CSS_SELECTOR,
-                    'a.btn.btn-default.btn-sm.dropdown-toggle'):
-                self.driver.find_element_by_css_selector(
-                    'a.btn.btn-default.btn-sm.dropdown-toggle').click()
-
-            self.driver.find_element_by_id(
-               "image_snapshots__row_{}__action_delete".format(
-                    self.image_snapshot_uuid)).click()
-            self.driver.find_element_by_link_text(
-                "Delete Image Snapshot").click()
-
-        if sys.exc_info()[0]:
-            helpers.create_screenshot(self.driver, self._testMethodName)
-
-        self.driver.close()
 
     def test_checking_to_hide_external_network(self):
         """Hide external networks from instance creation screen"""

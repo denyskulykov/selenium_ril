@@ -31,6 +31,31 @@ def login_for_user(driver, user, password):
         raise Exception("Unauthorized")
 
 
+def saml_login(driver):
+    driver.get("{}{}".format(conf.get('BASE_URI'), conf.get('login_page')))
+    driver.find_element_by_xpath('//*[@value="saml2"]').click()
+
+    driver.find_element_by_id("loginBtn").submit()
+
+    driver.find_element_by_name('username').send_keys(conf.get('saml_user'))
+    driver.find_element_by_name('password').send_keys(
+        conf.get('saml_user_pass'))
+    driver.find_element_by_xpath('//*[@value="Login"]').click()
+
+    # ToDo(den) add check for success
+
+
+def safe_login_for_user(self, user, password):
+    try:
+        login_for_user(
+            self.driver,
+            user,
+            password)
+    except Exception as e:
+        self.tearDown()
+        raise Exception(e.message)
+
+
 def check_element_exists(driver, by, value):
     """We can use Class By or the simple sting
 
