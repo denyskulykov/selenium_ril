@@ -6,14 +6,14 @@ from selenium.webdriver.common.by import By
 import sys
 import unittest
 
-import utils
+from utils import Utils
 import helpers
 
-conf = utils.get_configuration()
+conf = Utils.get_configuration()
 
 
 def tearDownModule():
-    utils.report(action="report")
+    Utils.get_report()
 
 
 @ddt
@@ -30,6 +30,26 @@ class TestForAdmin(unittest.TestCase):
             helpers.create_screenshot(self.driver, self._testMethodName)
 
         self.driver.close()
+
+    def test_openstack_dashboard_split_pages(self):
+        """Split Images Snapshots off Images page
+
+        Split Volume Snapshots off Volumes page
+        """
+        # part for admin
+        self.driver.get("{}{}".format(conf.get('BASE_URI'), '/admin/'))
+        self.assertIn("Volumes", self.driver.find_element_by_xpath(
+            "//a[@href='/admin/volumes/']").text)
+        self.assertIn("Volume Snapshots", self.driver.find_element_by_xpath(
+            "//a[@href='/admin/volume_snapshots/']").text)
+        self.assertIn("Images", self.driver.find_element_by_xpath(
+            "//a[@href='/admin/images/']").text)
+        self.assertIn("Image Snapshots", self.driver.find_element_by_xpath(
+            "//a[@href='/admin/image_snapshots/']").text)
+
+        Utils.add_to_report(
+            ["Split Images Snapshots off Images page for Admin",
+             "Split Volume Snapshots off Volumes page for Admin"])
 
 
 @ddt
@@ -101,17 +121,6 @@ class TestForNotAdmin(unittest.TestCase):
 
         Split Volume Snapshots off Volumes page
         """
-        # part for admin
-        self.driver.get("{}{}".format(conf.get('BASE_URI'), '/admin/'))
-        self.assertIn("Volumes", self.driver.find_element_by_xpath(
-            "//a[@href='/admin/volumes/']").text)
-        self.assertIn("Volume Snapshots", self.driver.find_element_by_xpath(
-            "//a[@href='/admin/volume_snapshots/']").text)
-        self.assertIn("Images", self.driver.find_element_by_xpath(
-            "//a[@href='/admin/images/']").text)
-        self.assertIn("Image Snapshots", self.driver.find_element_by_xpath(
-            "//a[@href='/admin/image_snapshots/']").text)
-
         # part for project
         self.driver.get("{}{}".format(conf.get('BASE_URI'), '/project/'))
         self.assertIn("Volumes", self.driver.find_element_by_xpath(
@@ -123,8 +132,9 @@ class TestForNotAdmin(unittest.TestCase):
         self.assertIn("Image Snapshots", self.driver.find_element_by_xpath(
             "//a[@href='/project/image_snapshots/']").text)
 
-        utils.report({"Split Images Snapshots off Images page": "Ok",
-                      "Split Volume Snapshots off Volumes page": "Ok"})
+        Utils.add_to_report(
+            ["Split Images Snapshots off Images page",
+             "Split Volume Snapshots off Volumes page"])
 
     def test_images_filter(self):
         """Extra filters on Images page"""
@@ -139,7 +149,7 @@ class TestForNotAdmin(unittest.TestCase):
         self.assertEqual(len(expected_filters), len(filter_values))
         self.assertSequenceEqual(filter_values, expected_filters)
 
-        utils.report({"Extra filters on Images page": "Ok"})
+        Utils.add_to_report("Extra filters on Images page")
 
     def test_sortable_for_columns(self):
         """Instances screen columns ordering
@@ -210,11 +220,12 @@ class TestForNotAdmin(unittest.TestCase):
                 attribute,
                 "Page 'volume_snapshots' has unsortable item")
 
-        utils.report({"Instances screen columns ordering": "Ok",
-                      "Volumes screen columns ordering": "Ok",
-                      "Volume Snapshots screen columns ordering": "Ok",
-                      "Images screen columns ordering": "Ok",
-                      "Image Snapshots screen columns ordering": "Ok"})
+        Utils.add_to_report(
+            ["Instances screen columns ordering",
+             "Volumes screen columns ordering",
+             "Volume Snapshots screen columns ordering",
+             "Images screen columns ordering",
+             "Image Snapshots screen columns ordering"])
 
     def test_title_for_snapshot_page(self):
         """Image Snapshots page title
@@ -253,8 +264,9 @@ class TestForNotAdmin(unittest.TestCase):
                 "//*[@id='content_body']//h1").text,
             "The page '/admin/volume_snapshots' has wrong title")
 
-        utils.report({"Image Snapshots page title": "Ok",
-                      "Volume Snapshots page title": "Ok"})
+        Utils.add_to_report(
+            ["Image Snapshots page title",
+             "Volume Snapshots page title"])
 
     def test_checking_to_hide_external_network(self):
         """Hide external networks from instance creation screen"""
@@ -279,8 +291,8 @@ class TestForNotAdmin(unittest.TestCase):
                 ''.format(number)).text, \
                 "ext-net network is  available for creating vm"
 
-        utils.report(
-            {"Hide external networks from instance creation screen": "Ok"})
+        Utils.add_to_report(
+            "Hide external networks from instance creation screen")
 
     @data("/admin/info/",
           "/admin/flavors/",
@@ -296,8 +308,8 @@ class TestForNotAdmin(unittest.TestCase):
             conf.get('login_page'), self.driver.current_url,
             "The page '{}' is available for non-admin".format(value))
 
-        utils.report({"Check Admin pages are not available for non-admin {}"
-                      "".format(value): "Ok"})
+        Utils.add_to_report("Check Admin pages are not available "
+                            "for non-admin {}".format(value))
 
     def test_button_image_create(self):
         """"Create Image" button available only for admin"""
@@ -320,7 +332,7 @@ class TestForNotAdmin(unittest.TestCase):
                 "images__action_create"),
             "Create Image button is available for non-admin")
 
-        utils.report({"Create Image button available only for admin": "Ok"})
+        Utils.add_to_report("Create Image button available only for admin")
 
     def test_image_description_is_read_only(self):
         """Image description is read-only for non-admin
@@ -342,7 +354,7 @@ class TestForNotAdmin(unittest.TestCase):
             '//*[contains(@id, "images__row")]//button'), \
             "Non-admin can change image description"
 
-        utils.report({"Image description is read-only for non-admin": "Ok"})
+        Utils.add_to_report("Image description is read-only for non-admin")
 
     def test_check_empty_name_for_volume(self):
         """Check "empty" volume 'name' field
@@ -377,7 +389,7 @@ class TestForNotAdmin(unittest.TestCase):
 
         self.driver.find_element_by_link_text("Create Volume").click()
         self.driver.find_element_by_id('id_name').clear()
-        volume_description = utils.gen_rand_string('volume')
+        volume_description = Utils.gen_rand_string('volume')
         self.driver.find_element_by_id('id_description').send_keys(
             volume_description)
         self.driver.find_element_by_xpath("//input[@type='submit']").submit()
@@ -410,7 +422,7 @@ class TestForNotAdmin(unittest.TestCase):
             "div.info.row.detail")
         self.assertTrue(volume_description in overview.text)
 
-        utils.report({"Check 'empty' volume 'name' field": "Ok"})
+        Utils.add_to_report("Check 'empty' volume 'name' field")
 
     def test_check_allow_delete_image_snapshots_for_non_admin(self):
         """Allow to delete image snapshots for non-admin user"""
@@ -440,7 +452,7 @@ class TestForNotAdmin(unittest.TestCase):
         self.driver.find_element_by_id(
             "instances__row_{}__action_snapshot".format(self.vm_uuid)).click()
 
-        name_snapshot = utils.gen_rand_string('snapshot')
+        name_snapshot = Utils.gen_rand_string('snapshot')
         self.driver.find_element_by_id("id_name").send_keys(name_snapshot)
 
         self.driver.find_element_by_xpath(
@@ -463,8 +475,8 @@ class TestForNotAdmin(unittest.TestCase):
                 "image_snapshots__row_{}__action_delete".format(
                     self.image_snapshot_uuid)))
 
-        utils.report(
-            {"Allow to delete image snapshots for non-admin user": "Ok"})
+        Utils.add_to_report(
+            "Allow to delete image snapshots for non-admin user")
 
     def check_dns_dashboard_is_available(self):
         self.driver.get("{}{}".format(
@@ -478,7 +490,7 @@ class TestForNotAdmin(unittest.TestCase):
             "Dns dashboard isn't available"
         )
 
-        utils.report({"Dns dashboard is available": "Ok"})
+        Utils.add_to_report("Dns dashboard is available")
 
     def check_murano_dashboard_is_available(self):
         self.driver.get("{}{}".format(
@@ -492,7 +504,7 @@ class TestForNotAdmin(unittest.TestCase):
             "Murano dashboard isn't available"
         )
 
-        utils.report({"Murano dashboard is available": "Ok"})
+        Utils.add_to_report("Murano dashboard is available")
 
 
 if __name__ == '__main__':

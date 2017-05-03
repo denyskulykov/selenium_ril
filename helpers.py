@@ -2,9 +2,9 @@ from datetime import datetime
 from selenium.common.exceptions import NoSuchElementException
 from selenium import webdriver
 
-import utils
+from utils import Utils
 
-conf = utils.get_configuration()
+conf = Utils.get_configuration()
 
 
 def get_client_driver():
