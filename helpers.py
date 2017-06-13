@@ -1,7 +1,9 @@
 from datetime import datetime
 from selenium.common.exceptions import NoSuchElementException
 from selenium import webdriver
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
+
 
 from utils import Utils
 
@@ -57,15 +59,23 @@ def saml_login(driver):
     # ToDo(den) add check for success
 
 
-def oli_login(driver):
+def oli_login(driver, ip):
+    url = "{}{}".format(conf.get('ilo_url'), ip)
+    driver.get(url)
+
     driver.switch_to.frame(driver.find_element_by_id("modalFrame"))
-    driver.find_element_by_id('usernameInput').send_keys(conf.get('ilo_user'))
+
+    driver.find_element_by_id('usernameInput').send_keys(
+        conf.get('ilo_user'))
     driver.find_element_by_id('passwordInput').send_keys(
         conf.get('ilo_user_pass'))
+
     driver.find_element_by_id('ID_LOGON').click()
 
 
 def ilo_next_page(driver):
+    # ActionChains(driver).send_keys(Keys.CONTROL + 't').perform()
+
     driver.switch_to.default_content()
     driver.switch_to.frame(driver.find_element_by_id("appFrame"))
     driver.find_element_by_id('appBody').send_keys(Keys.CONTROL + 't')
