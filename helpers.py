@@ -1,6 +1,7 @@
 from datetime import datetime
 from selenium.common.exceptions import NoSuchElementException
 from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
 
 from utils import Utils
 
@@ -17,7 +18,18 @@ def get_client_driver():
     return driver
 
 
-def login_for_user(driver, user, password):
+def safe_horizon_login(self, user, password):
+    try:
+        horizon_login(
+            self.driver,
+            user,
+            password)
+    except Exception as e:
+        self.tearDown()
+        raise Exception(e.message)
+
+
+def horizon_login(driver, user, password):
     driver.get("{}{}".format(conf.get('BASE_URI'), conf.get('login_page')))
 
     if not driver.find_element_by_id("id_username").is_displayed():
@@ -45,15 +57,18 @@ def saml_login(driver):
     # ToDo(den) add check for success
 
 
-def safe_login_for_user(self, user, password):
-    try:
-        login_for_user(
-            self.driver,
-            user,
-            password)
-    except Exception as e:
-        self.tearDown()
-        raise Exception(e.message)
+def oli_login(driver):
+    driver.switch_to.frame(driver.find_element_by_id("modalFrame"))
+    driver.find_element_by_id('usernameInput').send_keys(conf.get('ilo_user'))
+    driver.find_element_by_id('passwordInput').send_keys(
+        conf.get('ilo_user_pass'))
+    driver.find_element_by_id('ID_LOGON').click()
+
+
+def ilo_next_page(driver):
+    driver.switch_to.default_content()
+    driver.switch_to.frame(driver.find_element_by_id("appFrame"))
+    driver.find_element_by_id('appBody').send_keys(Keys.CONTROL + 't')
 
 
 def check_element_exists(driver, by, value):

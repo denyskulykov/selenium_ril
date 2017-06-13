@@ -22,7 +22,7 @@ class TestForAdmin(unittest.TestCase):
 
     def setUp(self):
         self.driver = helpers.get_client_driver()
-        helpers.safe_login_for_user(
+        helpers.safe_horizon_login(
             self, conf.get('admin_user'), conf.get('admin_user_pass'))
 
     def tearDown(self):
@@ -72,7 +72,7 @@ class TestForNotAdmin(unittest.TestCase):
         if conf.get('saml_auth'):
             helpers.saml_login(self.driver)
         else:
-            helpers.safe_login_for_user(
+            helpers.safe_horizon_login(
                 self,
                 conf.get('not_admin_user'),
                 conf.get('not_admin_user_pass'))

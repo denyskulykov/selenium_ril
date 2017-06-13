@@ -4,7 +4,7 @@ minimize_window: False
 BASE_URI: "https://"
 login_page: "/auth/login/"
 
-saml_auth: <True/False>
+saml_auth: 'False'
 
 saml_user: <user>
 saml_user_pass: <pass>
@@ -19,3 +19,14 @@ default_image_name: <cirros_image_name>
 default_vm_name: <name of vm>
 
 folder_screenshot: <path of folder for screenshot>
+
+ilo_url: 'https://'
+# 'https://10.10.10.' without last octet
+ilo_user: ''
+ilo_pass: ''
+
+number_of_node: ''
+# last octet of IP - 150
+start_octet: ''
+# last octet of IP - 160
+end_octet: ''
