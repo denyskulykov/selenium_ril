@@ -17,8 +17,9 @@ if param_of_opening == 'number':
     helpers.oli_login(driver)
 
     for _ in range(int(conf.get('number_of_node')) - 1):
-        helpers.ilo_next_page(driver)
         start_ip += 1
+
+        helpers.ilo_next_page(driver)
         driver.get("{}{}".format(conf.get('ilo_url'), start_ip))
         helpers.oli_login(driver)
 
@@ -33,6 +34,7 @@ if param_of_opening == 'range':
 
     for _ in range(int(conf.get('end_octet')) - start_ip):
         start_ip += 1
+
         helpers.ilo_next_page(driver)
         driver.get("{}{}".format(conf.get('ilo_url'), start_ip))
         helpers.oli_login(driver)

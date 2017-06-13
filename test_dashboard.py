@@ -69,7 +69,7 @@ class TestForNotAdmin(unittest.TestCase):
             self.driver,
             conf.get('timeout_creation'))
 
-        if conf.get('saml_auth'):
+        if conf.get('saml_auth') in 'True':
             helpers.saml_login(self.driver)
         else:
             helpers.safe_horizon_login(

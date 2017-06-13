@@ -94,6 +94,11 @@ def check_element_exists(driver, by, value):
 
 
 def create_screenshot(driver, name_of_test):
+    path = conf.get("folder_screenshot")
+    if path == '<path of folder for screenshot>':
+        path = './'
+
     now = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+
     driver.save_screenshot("{}{}-{}.png".format(
-        conf.get("folder_screenshot"), name_of_test, now))
+        path, name_of_test, now))
